@@ -125,8 +125,14 @@ your real API key. Only the `.example` template files should end up in the repo.
 - **"Search failed" / no results:** DuckDuckGo occasionally rate-limits the free `ddgs`
   library if you run many requests quickly. Wait a bit and retry, or lower the "search
   results per query" slider.
-- **Groq model errors ("model decommissioned"):** Groq periodically retires free models.
-  Pick a different one from the sidebar dropdown, and update `AVAILABLE_MODELS` in `crew.py`
-  if needed — current options are listed at <https://console.groq.com/docs/models>.
+- **Groq model errors ("model not found" / "does not exist" / decommissioned):**
+  Groq periodically retires free models — `llama-3.3-70b-versatile`, `llama-3.1-8b-instant`,
+  `qwen/qwen3-32b`, and `meta-llama/llama-4-scout-17b-16e-instruct` were all deprecated by
+  Groq between July and August 2026 and no longer work. The app now defaults to
+  `openai/gpt-oss-120b` (Groq's own recommended replacement). If a model in the sidebar
+  dropdown stops working again in the future, check
+  <https://console.groq.com/docs/models> and
+  <https://console.groq.com/docs/deprecations> for the current lineup, and update
+  `AVAILABLE_MODELS` / `DEFAULT_MODEL` in `crew.py`.
 - **Slow first run on Streamlit Cloud:** the first request after a cold start / redeploy can
   take longer while dependencies are imported; subsequent runs are faster.

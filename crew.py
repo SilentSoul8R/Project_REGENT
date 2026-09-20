@@ -54,14 +54,17 @@ except ImportError:
     pass  # litellm not installed; native-provider-only setups are unaffected.
 # ---------------------------------------------------------------------------
 
-# Groq models that are currently available on Groq's free tier.
-# If a model gets deprecated, swap the string here (or pick a different one in the UI).
+# Groq models currently available on Groq's free tier.
+# NOTE: llama-3.3-70b-versatile, llama-3.1-8b-instant, qwen/qwen3-32b, and
+# meta-llama/llama-4-scout-17b-16e-instruct were all deprecated/decommissioned
+# by Groq in July-August 2026. If a model in this list stops working, check
+# https://console.groq.com/docs/models (and https://console.groq.com/docs/deprecations)
+# for the current lineup and swap the string here.
 AVAILABLE_MODELS = [
-    "groq/llama-3.3-70b-versatile",
-    "groq/llama-3.1-8b-instant",
     "groq/openai/gpt-oss-120b",
     "groq/openai/gpt-oss-20b",
-    "groq/meta-llama/llama-4-scout-17b-16e-instruct",
+    "groq/qwen/qwen3.6-27b",
+    "groq/moonshotai/kimi-k2-instruct-0905",
 ]
 
 DEFAULT_MODEL = AVAILABLE_MODELS[0]
