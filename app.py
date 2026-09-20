@@ -18,21 +18,37 @@ st.set_page_config(
 # ---------------------------------------------------------------------------
 st.sidebar.title("⚙️ Settings")
 
-# Prefer a key from Streamlit secrets (set on Streamlit Cloud) if present,
-# otherwise let the user paste their own free Groq key.
-default_key = ""
+# Prefer a key from Streamlit secrets (set on Streamlit Cloud) if present.
+# IMPORTANT: the real key is never placed into a widget's value — Streamlit
+# renders a widget's initial value into the page, so pre-filling a password
+# field with a real secret would expose it (e.g. via the browser's built-in
+# "reveal password" eye icon, or view-source). We only use it internally.
+configured_key = ""
 try:
-    default_key = st.secrets.get("GROQ_API_KEY", "")
+    configured_key = st.secrets.get("GROQ_API_KEY", "")
 except Exception:
-    default_key = os.getenv("GROQ_API_KEY", "")
+    configured_key = os.getenv("GROQ_API_KEY", "")
 
-api_key = st.sidebar.text_input(
-    "Groq API key",
-    value=default_key,
-    type="password",
-    help="Get a free key at https://console.groq.com/keys. "
-    "If the app owner already configured a key in Streamlit secrets, you can leave this as is.",
-)
+user_key = ""
+if configured_key:
+    st.sidebar.success("Groq API key is configured by the app owner. ✅")
+    use_own_key = st.sidebar.checkbox("Use my own Groq API key instead")
+    if use_own_key:
+        user_key = st.sidebar.text_input(
+            "Your Groq API key",
+            value="",
+            type="password",
+            help="Get a free key at https://console.groq.com/keys.",
+        )
+    api_key = user_key or configured_key
+else:
+    user_key = st.sidebar.text_input(
+        "Groq API key",
+        value="",
+        type="password",
+        help="Get a free key at https://console.groq.com/keys.",
+    )
+    api_key = user_key
 
 model = st.sidebar.selectbox(
     "Model (served free by Groq)",
@@ -50,6 +66,23 @@ max_results = st.sidebar.slider(
 )
 
 show_agent_log = st.sidebar.checkbox("Show agent thinking / tool calls", value=False)
+
+
+def redact(text: str) -> str:
+    """Strip the raw API key out of any text before it's ever shown on screen.
+
+    This is defense-in-depth: normally Groq/LiteLLM error messages don't echo
+    back the key, but if a library or traceback ever did, we don't want it
+    rendered in the UI.
+    """
+    if not text:
+        return text
+    scrubbed = text
+    if api_key:
+        scrubbed = scrubbed.replace(api_key, "••••••••")
+    if configured_key:
+        scrubbed = scrubbed.replace(configured_key, "••••••••")
+    return scrubbed
 
 st.sidebar.markdown("---")
 st.sidebar.markdown(
@@ -95,10 +128,10 @@ if run_clicked:
                 )
         except Exception as exc:  # noqa: BLE001
             status_placeholder.empty()
-            st.error(f"Something went wrong: {exc}")
+            st.error(f"Something went wrong: {redact(str(exc))}")
             if show_agent_log:
                 with st.expander("Agent log"):
-                    st.code(log_buffer.getvalue() or "No log captured.")
+                    st.code(redact(log_buffer.getvalue()) or "No log captured.")
         else:
             status_placeholder.empty()
             st.success("Done!")
@@ -116,7 +149,7 @@ if run_clicked:
 
             if show_agent_log:
                 with st.expander("Agent log (thinking / tool calls)"):
-                    st.code(log_buffer.getvalue() or "No log captured.")
+                    st.code(redact(log_buffer.getvalue()) or "No log captured.")
 
 st.markdown("---")
 st.caption(

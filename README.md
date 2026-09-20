@@ -110,6 +110,18 @@ your real API key. Only the `.example` template files should end up in the repo.
 
 ## Troubleshooting
 
+- **`pydantic.v1.errors.ConfigError: unable to infer type for attribute...` on deploy:**
+  This is not a bug in this app — it's a known incompatibility between `chromadb`
+  (a dependency CrewAI pulls in for its Knowledge feature, even though we don't use it)
+  and **Python 3.14**, which Streamlit Cloud now defaults to for new apps. Pydantic v1's
+  compatibility shim, which `chromadb` still relies on internally, doesn't work on
+  Python 3.14, and there's no released fix yet.
+  **Fix:** on your app's page on share.streamlit.io, open the **⋮ menu → Settings →
+  Advanced settings** (or the "Advanced settings" dialog shown when you first deploy),
+  set **Python version to 3.11** (3.12 also works), save, and reboot the app. A
+  `runtime.txt` file (already included in this repo, pinned to `python-3.11`) is a
+  backup for this, but Streamlit Cloud has been inconsistent about respecting it — the
+  Advanced settings dropdown is the reliable way to set it.
 - **"Search failed" / no results:** DuckDuckGo occasionally rate-limits the free `ddgs`
   library if you run many requests quickly. Wait a bit and retry, or lower the "search
   results per query" slider.
