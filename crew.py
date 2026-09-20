@@ -13,6 +13,47 @@ from crewai import Agent, Crew, Process, Task, LLM
 
 from tools.search_tools import DuckDuckGoNewsTool, DuckDuckGoSearchTool
 
+# ---------------------------------------------------------------------------
+# Workaround for a CrewAI bug (crewAIInc/crewAI#7176, open/unmerged as of
+# crewai 1.15.x): CrewAI's agent executor tags certain messages with an
+# internal "cache_breakpoint" marker for prompt caching. That marker is only
+# stripped before sending for CrewAI's "native" providers (OpenAI, Anthropic,
+# etc.). For everything else -- including Groq -- CrewAI routes through
+# LiteLLM, and the marker leaks straight into the request body, which Groq's
+# (and Mistral's) API rejects as an unrecognized field. We patch litellm's
+# entry points to strip it ourselves. This is a no-op for native providers,
+# since they don't go through litellm.completion/acompletion at all.
+try:
+    import litellm
+
+    _CACHE_BREAKPOINT_KEY = "cache_breakpoint"
+    _original_completion = litellm.completion
+    _original_acompletion = litellm.acompletion
+
+    def _strip_cache_breakpoints(messages):
+        cleaned = []
+        for msg in messages:
+            if isinstance(msg, dict) and _CACHE_BREAKPOINT_KEY in msg:
+                msg = {k: v for k, v in msg.items() if k != _CACHE_BREAKPOINT_KEY}
+            cleaned.append(msg)
+        return cleaned
+
+    def _patched_completion(*args, **kwargs):
+        if "messages" in kwargs:
+            kwargs["messages"] = _strip_cache_breakpoints(kwargs["messages"])
+        return _original_completion(*args, **kwargs)
+
+    async def _patched_acompletion(*args, **kwargs):
+        if "messages" in kwargs:
+            kwargs["messages"] = _strip_cache_breakpoints(kwargs["messages"])
+        return await _original_acompletion(*args, **kwargs)
+
+    litellm.completion = _patched_completion
+    litellm.acompletion = _patched_acompletion
+except ImportError:
+    pass  # litellm not installed; native-provider-only setups are unaffected.
+# ---------------------------------------------------------------------------
+
 # Groq models that are currently available on Groq's free tier.
 # If a model gets deprecated, swap the string here (or pick a different one in the UI).
 AVAILABLE_MODELS = [
