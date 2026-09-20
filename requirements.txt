@@ -1,0 +1,4 @@
+crewai>=1.15.0,<2.0.0
+ddgs>=9.0.0
+streamlit>=1.50.0,<2.0.0
+python-dotenv>=1.0.1
